@@ -1,0 +1,8 @@
+name: playground-quickcheck
+
+dependencies:
+    - base
+    - random
+
+library:
+    source-dirs: src

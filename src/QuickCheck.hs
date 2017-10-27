@@ -87,3 +87,49 @@ instance (Arbitrary a, Coarbitrary b) => Coarbitrary (a -> b) where
     coarbitrary f gen = do
         a <- arbitrary
         coarbitrary (f a) gen
+
+newtype Property = Prop (Gen Result)
+
+unprop :: Property -> Gen Result
+unprop (Prop x) = x
+
+data Result = Result
+    { ok :: Maybe Bool
+    , stamp :: [String]
+    , arguments :: [String]
+    }
+
+nothing :: Result
+nothing = Result { ok = Nothing, stamp = [], arguments = [] }
+
+result :: Result -> Property
+result = Prop . pure
+
+class Testable a where
+    property :: a -> Property
+
+instance Testable Bool where
+    property b = result $ nothing { ok = Just b }
+
+instance Testable Property where
+    property = id
+
+instance (Arbitrary a, Show a, Testable b) => Testable (a -> b) where
+    property f = Prop $ do
+            a <- arbitrary
+            evaluate $ f a
+
+evaluate :: Testable a => a -> Gen Result
+evaluate = unprop . property
+
+forAll :: (Show a, Testable b) => Gen a -> (a -> b) -> Property
+forAll gen f = Prop $ do
+    a <- gen
+    res <- evaluate $ f a
+    return (arg a res)
+    where
+        arg a res = res { arguments = show a : arguments res }
+
+(==>) :: Testable a => Bool -> a -> Property
+False ==> a = result nothing
+True ==> a = property a

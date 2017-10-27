@@ -70,3 +70,20 @@ instance (Coarbitrary a, Arbitrary b) => Arbitrary (a -> b) where
 
 class Coarbitrary a where
     coarbitrary :: a -> Gen b -> Gen b
+
+instance Coarbitrary Bool where
+    coarbitrary b = variant $ if b then 0 else 1
+
+instance Coarbitrary Int where
+    coarbitrary = variant
+
+instance (Coarbitrary a, Coarbitrary b) => Coarbitrary (a, b) where
+    coarbitrary (a, b) = coarbitrary a . coarbitrary b
+
+instance Coarbitrary a => Coarbitrary [a] where
+    coarbitrary as = foldl (.) id (coarbitrary <$> as)
+
+instance (Arbitrary a, Coarbitrary b) => Coarbitrary (a -> b) where
+    coarbitrary f gen = do
+        a <- arbitrary
+        coarbitrary (f a) gen

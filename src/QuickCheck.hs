@@ -133,3 +133,16 @@ forAll gen f = Prop $ do
 (==>) :: Testable a => Bool -> a -> Property
 False ==> a = result nothing
 True ==> a = property a
+
+label :: Testable a => String -> a -> Property
+label s a = Prop $ addArg <$> evaluate a
+    where addArg res = res { stamp = s : stamp res }
+
+classify :: Testable a => Bool -> String -> a -> Property
+classify True name = label name
+classify False _ = property
+
+collect :: (Show a, Testable b) => a -> b -> Property
+collect a = label $ show a
+
+quickCheck :: (Testable a) => a -> IO ()
